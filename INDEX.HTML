@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سوسو اي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* واجهة جمالية مخصصة */
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0c1521;
+        }
+        .container {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .control-panel {
+            background: linear-gradient(135deg, #1A2033 0%, #171E2D 100%);
+            border: 1px solid #334155;
+        }
+        .button-style {
+            background: linear-gradient(145deg, #0f172a 0%, #0c1521 100%);
+            color: white;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #4ade80;
+            box-shadow: 0 0 10px #4ade8050;
+        }
+        .button-style:hover {
+            background: linear-gradient(145deg, #1c2742 0%, #151d2e 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        .button-style:active {
+            transform: translateY(1px);
+        }
+        .button-style::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: all 0.6s ease-in-out;
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+        }
+        .button-style:hover::before {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .modal-overlay {
+            background-color: rgba(12, 21, 33, 0.8);
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background-color: #1f2937;
+            border: 1px solid #334155;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        .loading-animation {
+            border-top-color: #4ade80;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .glowing-shadow {
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1), 0 0 30px rgba(74, 222, 128, 0.2), 0 0 45px rgba(74, 222, 128, 0.1);
+        }
+        .bg-green-trade {
+            background-color: #064e3b; /* لون أخضر أغمق للرؤية */
+            transition: background-color 0.5s ease-in-out;
+        }
+        .bg-red-trade {
+            background-color: #7f1d1d; /* لون أحمر أغمق للرؤية */
+            transition: background-color: 0.5s ease-in-out;
+        }
+        .bg-default {
+            background-color: #1f2937;
+            transition: background-color: 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="p-4 min-h-screen flex flex-col items-center justify-center text-white">
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen" class="w-full max-w-sm">
+        <div class="container p-8 rounded-3xl glowing-shadow">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-white mb-2">تسجيل الدخول إلى SOSO AI</h1>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="username-input" class="block text-sm font-medium text-gray-300 mb-2">اسم المستخدم:</label>
+                    <input type="text" id="username-input" class="w-full p-3 text-sm text-gray-100 bg-gray-900 rounded-lg outline-none border border-gray-700 focus:ring-2 focus:ring-blue-500 transition-all duration-300" required />
+                </div>
+                <div>
+                    <label for="password-input" class="block text-sm font-medium text-gray-300 mb-2">كلمة المرور:</label>
+                    <input type="password" id="password-input" class="w-full p-3 text-sm text-gray-100 bg-gray-900 rounded-lg outline-none border border-gray-700 focus:ring-2 focus:ring-blue-500 transition-all duration-300" required />
+                </div>
+                <button type="submit" class="w-full p-3 button-style rounded-lg font-semibold shadow-md">تسجيل الدخول</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- شاشة انتظار الموافقة -->
+    <div id="waiting-screen" class="hidden w-full max-w-sm text-center">
+        <div class="container p-8 rounded-3xl glowing-shadow">
+            <h2 class="text-2xl font-bold text-white mb-4">في انتظار الموافقة</h2>
+            <p class="text-gray-400">تم إرسال طلب الدخول الخاص بك. يرجى الانتظار حتى تتم الموافقة عليه من قبل المسؤول.</p>
+            <div class="mt-6">
+                <div class="loading-animation w-12 h-12 border-4 rounded-full mx-auto"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- الحاوية الرئيسية (مخفية بشكل افتراضي) -->
+    <div id="main-app-container" class="container w-full max-w-4xl p-8 rounded-3xl glowing-shadow hidden">
+
+        <!-- رأس الصفحة -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">SOSO AI</h1>
+            <p class="text-gray-400">أداة تحليل السوق المدعومة بالذكاء الاصطناعي</p>
+            <p id="user-id-display" class="text-xs text-gray-500 mt-2">المعرف: </p>
+        </div>
+
+        <!-- لوحة التحكم في التداول -->
+        <div class="control-panel p-6 rounded-3xl mb-6">
+            <!-- إدخال مفتاح API -->
+            <div class="mb-4">
+                <label for="api-key-input" class="block text-sm font-medium text-gray-300 mb-2">مفتاح API:</label>
+                <input type="text" id="api-key-input" class="w-full p-3 text-sm text-gray-100 bg-gray-900 rounded-lg outline-none border border-gray-700 focus:ring-2 focus:ring-blue-500 transition-all duration-300 placeholder-gray-500" placeholder="أدخل مفتاح API الخاص بك من Google AI Studio" />
+            </div>
+            <!-- قسم الإدخال والإجراءات -->
+            <div class="grid grid-cols-1 gap-6">
+                <!--إدخال النص والصورة -->
+                <div>
+                    <textarea id="input-query" rows="4" class="w-full p-4 text-gray-100 bg-gray-900 rounded-lg outline-none border border-gray-700 focus:ring-2 focus:ring-blue-500 transition-all duration-300 placeholder-gray-400" placeholder="اسألني عن السوق... أي شيء. أنا أعرف الإجابة." ></textarea>
+                    <input type="file" id="image-upload" accept="image/*" class="hidden">
+                    <div id="image-preview-container" class="hidden relative mt-4 rounded-lg overflow-hidden border border-gray-700">
+                        <img id="image-preview" src="" alt="معاينة الصورة" class="w-full h-auto object-cover">
+                        <button id="clear-image-btn" class="absolute top-2 left-2 p-2 bg-red-600 hover:bg-red-700 text-white rounded-full transition-colors duration-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- أزرار التحكم -->
+                <div>
+                    <label for="trading-style-select" class="block text-sm font-medium text-gray-300 mb-2">طريقة اللعب:</label>
+                    <select id="trading-style-select" class="w-full p-3 text-sm text-gray-100 bg-gray-900 rounded-lg outline-none border border-gray-700 focus:ring-2 focus:ring-blue-500 transition-all duration-300 mb-4">
+                        <option value="سكالبينج">سكالبينج (Scalping)</option>
+                        <option value="سوينغ" selected>سوينغ (Swing)</option>
+                        <option value="استثمار">استثمار (Investment)</option>
+                    </select>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <button id="analyze-btn" class="p-3 button-style rounded-lg font-semibold shadow-md">تحليل فني</button>
+                        <button id="fundamental-btn" class="p-3 button-style rounded-lg font-semibold shadow-md">تحليل أساسي</button>
+                        <button id="direct-trade-btn" class="p-3 button-style rounded-lg font-semibold shadow-md">توصية تداول</button>
+                        <button id="high-conviction-trade-btn" class="p-3 button-style rounded-lg font-semibold shadow-md">توصية ذات قناعة عالية</button>
+                    </div>
+                    <div class="mt-4 flex justify-center">
+                        <button id="upload-btn" class="w-2/3 p-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg shadow-md transition-all duration-300 transform hover:scale-105">تحميل صورة</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قسم مخرجات التحليل -->
+        <div id="output-section" class="relative bg-gray-800 rounded-lg p-4 min-h-[200px] border border-gray-700 shadow-inner">
+            <div id="loading-spinner" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <div class="loading-animation w-12 h-12 border-4 rounded-full"></div>
+            </div>
+            <div id="output-text" class="prose prose-invert max-w-none text-gray-300 text-sm leading-relaxed"></div>
+            <div class="flex justify-end mt-4">
+                <button id="save-btn" class="hidden px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-semibold text-sm rounded-lg transition-all duration-300 transform hover:scale-105">حفظ</button>
+            </div>
+        </div>
+        
+        <!-- لوحة تحكم المسؤول (مخفية بشكل افتراضي) -->
+        <div id="admin-panel" class="hidden mt-6 p-6 bg-gray-900 rounded-2xl shadow-inner border border-gray-700">
+            <h2 class="text-2xl font-bold text-white mb-4">طلبات الدخول المعلقة</h2>
+            <div id="requests-list" class="space-y-4">
+                <p class="text-gray-500">لا توجد طلبات معلقة حاليًا.</p>
+            </div>
+            
+            <h2 class="text-2xl font-bold text-white mb-4 mt-8">إدارة المستخدمين</h2>
+            <div id="users-list" class="space-y-4">
+                 <p class="text-gray-500">جاري تحميل المستخدمين...</p>
+            </div>
+        </div>
+
+        <!-- تاريخ جلسات التداول -->
+        <div class="mt-6 p-6 bg-gray-800 rounded-2xl shadow-inner border border-gray-700">
+            <h2 class="text-2xl font-bold text-white mb-4">سجل التحليلات</h2>
+            <div id="sessions-list" class="space-y-4">
+                <p class="text-gray-500">لا يوجد سجل حتى الآن.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- نموذج الرسالة -->
+    <div id="message-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="modal-content p-6 rounded-xl shadow-2xl w-full max-w-sm">
+            <div class="text-center">
+                <p id="modal-text" class="text-lg text-white mb-4"></p>
+                <button id="close-modal-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full transition-transform duration-200 transform hover:scale-105">موافق</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- نموذج تأكيد التوصية ذات القناعة العالية -->
+    <div id="invincible-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="modal-content p-6 rounded-xl shadow-2xl w-full max-w-lg">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold text-green-400 mb-4">توصية ذات قناعة عالية</h3>
+                <p class="text-gray-300 mb-6">تحليلاتي مبنية على بيانات لا حصر لها، وهذه التوصية تتمتع بأعلى قناعة ممكنة. ومع ذلك، لا يوجد أي ضمان للنجاح في السوق. هل أنت جاهز للمضي قدماً؟</p>
+                <div class="flex justify-center gap-4">
+                     <button id="confirm-invincible-btn" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full transition-transform duration-200 transform hover:scale-105">نعم، أنا جاهز</button>
+                     <button id="cancel-invincible-btn" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-full transition-transform duration-200 transform hover:scale-105">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نموذج تأكيد الحذف -->
+    <div id="confirm-delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="modal-content p-6 rounded-xl shadow-2xl w-full max-w-sm">
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-red-400 mb-4">تأكيد الحذف</h3>
+                <p id="confirm-delete-text" class="text-lg text-white mb-6">هل أنت متأكد أنك تريد حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="confirm-delete-btn" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full transition-transform duration-200 transform hover:scale-105">نعم, حذف</button>
+                    <button id="cancel-delete-btn" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-full transition-transform duration-200 transform hover:scale-105">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, doc, updateDoc, where, setLogLevel, getDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase log level
+        setLogLevel('debug');
+
+        // Environment variables & Firebase Config
+        // !! هام: لاستخدام هذا التطبيق بشكل مستقل، استبدل القيم التالية بقيم مشروع Firebase الخاص بك
+        // !! WARNING: You MUST replace the placeholder values below with your own Firebase project's configuration
+        // !! for this application to work correctly. You can get these from your Firebase project settings.
+        const placeholderConfig = {
+            apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            authDomain: "your-project-id.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project-id.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:XXXXXXXXXXXXXXXXXXXXXX"
+        };
+        
+        let firebaseConfig = {};
+        // إذا كان التطبيق يعمل في بيئة خاصة، فسيتم استخدام الإعدادات من تلك البيئة
+        if (typeof __firebase_config !== 'undefined' && __firebase_config !== '{}') {
+             try {
+                 firebaseConfig = JSON.parse(__firebase_config);
+             } catch(e) {
+                 console.error("Failed to parse __firebase_config, using placeholders:", e);
+                 firebaseConfig = placeholderConfig;
+             }
+        } else {
+             firebaseConfig = placeholderConfig;
+        }
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+        let userId;
+        let userRole = 'user'; 
+        let currentImageBase64 = null;
+        const MAX_RETRIES = 3;
+        let userToDeleteId = null;
+
+        /**
+         * Initializes Firebase and sets up authentication state listener.
+         */
+        const initFirebase = async () => {
+            try {
+                if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("XXXX")) {
+                    // This error means the app is using placeholder credentials.
+                    // You need to replace them with your actual Firebase project config.
+                    throw new Error("Firebase config is not valid. Please provide your project configuration.");
+                }
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-id-display').textContent = `المعرف: ${userId}`;
+                        // Don't auto-login here. Wait for form submission.
+                    } else {
+                        console.log("No user authenticated. Attempting sign-in...");
+                        if (initialAuthToken) {
+                            try {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } catch (e) {
+                                console.error("Custom token sign-in failed:", e);
+                                await signInAnonymously(auth);
+                            }
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error("Firebase initialization error:", e);
+                // Use a modal for the error instead of replacing the screen content
+                showMessageModal(`فشل تهيئة Firebase: ${e.message}. يرجى التأكد من صحة إعدادات مشروع Firebase في الكود.`);
+                // Disable the login button to prevent further actions
+                const loginButton = document.querySelector('#login-form button[type="submit"]');
+                if (loginButton) {
+                    loginButton.disabled = true;
+                    loginButton.textContent = 'تم تعطيل الدخول';
+                    loginButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        };
+        
+        /**
+         * Submits a login request for admin approval.
+         * @param {string} username The username requesting access.
+         */
+        const submitLoginRequest = async (username) => {
+            if (!db) {
+                showMessageModal("Database connection error. Please try again.");
+                return;
+            }
+            try {
+                const requestsRef = collection(db, 'artifacts', appId, 'public', 'data', 'login_requests');
+                const q = query(requestsRef, where("username", "==", username), where("status", "==", "pending"));
+                const existingRequests = await getDocs(q);
+                if (!existingRequests.empty) {
+                    showMessageModal("A login request for this username is already pending.");
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('waiting-screen').classList.remove('hidden');
+                    listenForApproval(existingRequests.docs[0].id);
+                    return;
+                }
+
+                const docRef = await addDoc(requestsRef, {
+                    username: username,
+                    status: 'pending',
+                    createdAt: serverTimestamp()
+                });
+                console.log("Login request created with ID:", docRef.id);
+                sessionStorage.setItem('loginRequestId', docRef.id);
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('waiting-screen').classList.remove('hidden');
+                listenForApproval(docRef.id);
+            } catch (error) {
+                console.error("Error submitting login request:", error);
+                showMessageModal("An error occurred while submitting the login request.");
+            }
+        };
+
+        /**
+         * Listens for changes in the status of a login request.
+         * @param {string} requestId The Firestore document ID of the login request.
+         */
+        const listenForApproval = (requestId) => {
+            const requestDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'login_requests', requestId);
+            
+            const unsubscribe = onSnapshot(requestDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const requestData = docSnap.data();
+                    if (requestData.status === 'approved') {
+                        unsubscribe(); 
+                        sessionStorage.removeItem('loginRequestId');
+                        showMessageModal("تمت الموافقة على طلبك! الرجاء تسجيل الدخول مرة أخرى.");
+                        document.getElementById('waiting-screen').classList.add('hidden');
+                        document.getElementById('login-screen').classList.remove('hidden');
+                        document.getElementById('login-form').reset();
+                    } else if (requestData.status === 'denied') {
+                        unsubscribe();
+                        sessionStorage.removeItem('loginRequestId');
+                        showMessageModal("تم رفض طلب الدخول الخاص بك.");
+                        document.getElementById('waiting-screen').classList.add('hidden');
+                        document.getElementById('login-screen').classList.remove('hidden');
+                        document.getElementById('login-form').reset();
+                    }
+                } else {
+                    unsubscribe();
+                    sessionStorage.removeItem('loginRequestId');
+                    showMessageModal("تم إلغاء طلب الدخول الخاص بك.");
+                    document.getElementById('waiting-screen').classList.add('hidden');
+                    document.getElementById('login-screen').classList.remove('hidden');
+                    document.getElementById('login-form').reset();
+                }
+            }, (error) => {
+                console.error("Error listening for approval:", error);
+                unsubscribe();
+            });
+        };
+        
+        /**
+         * Loads and displays pending login requests for the admin.
+         */
+        const loadLoginRequests = () => {
+             const requestsRef = collection(db, 'artifacts', appId, 'public', 'data', 'login_requests');
+             const q = query(requestsRef, where("status", "==", "pending"));
+
+             onSnapshot(q, (snapshot) => {
+                 const requestsList = document.getElementById('requests-list');
+                 requestsList.innerHTML = '';
+                 if (snapshot.empty) {
+                     requestsList.innerHTML = `<p class="text-gray-500">لا توجد طلبات معلقة حاليًا.</p>`;
+                     return;
+                 }
+                 
+                 snapshot.forEach((doc) => {
+                     const request = doc.data();
+                     const requestId = doc.id;
+                     const requestElement = document.createElement('div');
+                     requestElement.className = 'bg-gray-800 p-4 rounded-lg flex justify-between items-center';
+                     const requestDate = request.createdAt ? new Date(request.createdAt.seconds * 1000).toLocaleString('ar-EG') : 'غير معروف';
+
+                     requestElement.innerHTML = `
+                         <div>
+                             <p class="font-semibold text-white">${request.username}</p>
+                             <p class="text-xs text-gray-400">${requestDate}</p>
+                         </div>
+                         <div class="flex gap-2">
+                             <button data-id="${requestId}" data-username="${request.username}" class="approve-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-md">موافقة</button>
+                             <button data-id="${requestId}" class="deny-btn px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-md">رفض</button>
+                         </div>
+                     `;
+                     requestsList.appendChild(requestElement);
+                 });
+
+                 document.querySelectorAll('.approve-btn').forEach(button => {
+                     button.addEventListener('click', (e) => approveRequest(e.target.dataset.id, e.target.dataset.username));
+                 });
+                 document.querySelectorAll('.deny-btn').forEach(button => {
+                     button.addEventListener('click', (e) => denyRequest(e.target.dataset.id));
+                 });
+             }, (error) => {
+                  console.error("Error loading login requests:", error);
+                  requestsList.innerHTML = `<p class="text-red-500">حدث خطأ في تحميل الطلبات.</p>`;
+             });
+        };
+
+        /**
+         * Approves a login request and creates a persistent user entry.
+         * @param {string} requestId The ID of the request document.
+         * @param {string} username The username to approve.
+         */
+        const approveRequest = async (requestId, username) => {
+            const requestDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'login_requests', requestId);
+            const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+            try {
+                await addDoc(usersRef, {
+                    username: username,
+                    status: 'active',
+                    createdAt: serverTimestamp()
+                });
+                await updateDoc(requestDocRef, { status: 'approved' });
+            } catch (error) {
+                console.error("Error approving request:", error);
+            }
+        };
+
+        /**
+         * Denies a login request.
+         * @param {string} requestId The ID of the request document.
+         */
+        const denyRequest = async (requestId) => {
+            const requestDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'login_requests', requestId);
+            try {
+                await updateDoc(requestDocRef, { status: 'denied' });
+            } catch (error) {
+                console.error("Error denying request:", error);
+            }
+        };
+        
+        /**
+         * Loads all registered users for the admin management panel.
+         */
+        const loadUsers = () => {
+            const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+            onSnapshot(usersRef, (snapshot) => {
+                const usersList = document.getElementById('users-list');
+                usersList.innerHTML = '';
+                if(snapshot.empty){
+                    usersList.innerHTML = `<p class="text-gray-500">لا يوجد مستخدمون مسجلون.</p>`;
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const user = doc.data();
+                    const userElement = document.createElement('div');
+                    userElement.className = 'bg-gray-800 p-4 rounded-lg flex justify-between items-center';
+                    
+                    const statusClass = user.status === 'active' ? 'text-green-400' : 'text-red-400';
+                    const buttonClass = user.status === 'active' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700';
+                    const buttonText = user.status === 'active' ? 'تعليق' : 'إعادة تفعيل';
+
+                    userElement.innerHTML = `
+                        <div>
+                           <p class="font-semibold text-white">${user.username}</p>
+                           <p class="text-sm ${statusClass}">${user.status}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button data-id="${doc.id}" data-status="${user.status}" class="user-action-btn px-3 py-1 text-white text-sm font-semibold rounded-md ${buttonClass}">${buttonText}</button>
+                            <button data-id="${doc.id}" class="delete-user-btn px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-md">حذف</button>
+                        </div>
+                    `;
+                    usersList.appendChild(userElement);
+                });
+
+                document.querySelectorAll('.user-action-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const id = e.target.dataset.id;
+                        const currentStatus = e.target.dataset.status;
+                        const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+                        updateUserStatus(id, newStatus);
+                    });
+                });
+                document.querySelectorAll('.delete-user-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const id = e.target.dataset.id;
+                        showConfirmDeleteModal(id);
+                    });
+                });
+            });
+        };
+        
+        const showConfirmDeleteModal = (userDocId) => {
+            userToDeleteId = userDocId;
+            document.getElementById('confirm-delete-modal').classList.remove('hidden');
+        };
+
+        const hideConfirmDeleteModal = () => {
+            userToDeleteId = null;
+            document.getElementById('confirm-delete-modal').classList.add('hidden');
+        };
+
+        const deleteUser = async (userDocId) => {
+            if (!userDocId) return;
+            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userDocId);
+            try {
+                await deleteDoc(userDocRef);
+                showMessageModal("تم حذف المستخدم بنجاح.");
+            } catch(error) {
+                console.error("Error deleting user:", error);
+                showMessageModal("فشل حذف المستخدم.");
+            }
+        };
+
+        const updateUserStatus = async (userDocId, newStatus) => {
+            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userDocId);
+            try {
+                await updateDoc(userDocRef, { status: newStatus });
+            } catch(error) {
+                console.error("Error updating user status:", error);
+                showMessageModal("Failed to update user status.");
+            }
+        };
+
+        const loadTradingSessions = (uid) => {
+            const sessionRef = collection(db, 'artifacts', appId, 'users', uid, 'trading_sessions');
+            onSnapshot(query(sessionRef), (snapshot) => {
+                const sessionList = document.getElementById('sessions-list');
+                sessionList.innerHTML = '';
+                const sessionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                sessionsData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+
+                if (sessionsData.length === 0) {
+                    sessionList.innerHTML = `<p class="text-gray-500">لا يوجد سجل حتى الآن.</p>`;
+                } else {
+                    sessionsData.forEach(session => {
+                        const sessionElement = document.createElement('div');
+                        sessionElement.className = 'bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-md';
+                        const date = session.createdAt ? new Date(session.createdAt.seconds * 1000).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'غير معروف';
+                        sessionElement.innerHTML = `
+                            <h4 class="text-lg font-semibold text-white">${session.query}</h4>
+                            <div class="text-sm text-gray-400 mt-1">${formatMarkdown(session.analysis)}</div>
+                            <p class="text-xs text-gray-500 mt-2">تاريخ الحفظ: ${date}</p>
+                        `;
+                        sessionList.appendChild(sessionElement);
+                    });
+                }
+            }, (error) => {
+                console.error("Error loading sessions:", error);
+            });
+        };
+
+        const saveSession = async (sessionData) => {
+            if (!db || !userId) {
+                console.error("Database not initialized or user not logged in.");
+                showMessageModal("لا يمكن حفظ الجلسة. خطأ في الاتصال.");
+                return;
+            }
+            try {
+                const sessionRef = collection(db, 'artifacts', appId, 'users', userId, 'trading_sessions');
+                await addDoc(sessionRef, {
+                    ...sessionData,
+                    createdAt: serverTimestamp()
+                });
+                showMessageModal("تم حفظ التحليل بنجاح.");
+            } catch (error) {
+                console.error("Error saving session:", error);
+                showMessageModal("حدث خطأ أثناء حفظ التحليل.");
+            }
+        };
+
+        const getGeminiResponse = async (systemPrompt, userQuery, apiKey, imageBase64 = null) => {
+             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const headers = { 'Content-Type': 'application/json' };
+            
+            const parts = [{ text: userQuery }];
+            if (imageBase64) {
+                parts.unshift({
+                    inlineData: {
+                        mimeType: 'image/jpeg', // Or detect dynamically
+                        data: imageBase64
+                    }
+                });
+            }
+
+            const payload = {
+                contents: [{ parts }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`API Error: ${response.status} ${response.statusText} - ${JSON.stringify(errorBody)}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts[0].text) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        // Handle cases where response is blocked or has no content
+                        const blockReason = result.candidates?.[0]?.finishReason;
+                        const safetyRatings = result.candidates?.[0]?.safetyRatings;
+                        console.warn("API response was blocked or empty.", { blockReason, safetyRatings });
+                        return `تم حظر الاستجابة لأسباب تتعلق بالسلامة: ${blockReason}.`;
+                    }
+                } catch (error) {
+                    console.error(`Attempt ${i + 1} failed:`, error);
+                    if (i === MAX_RETRIES - 1) {
+                        return `حدث خطأ بعد عدة محاولات للاتصال بالـ API. يرجى التحقق من مفتاح API الخاص بك واتصال الشبكة.`;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 2 ** i * 1000)); // Exponential backoff
+                }
+            }
+        };
+
+        const handleAnalysis = async (analysisType) => {
+            const query = document.getElementById('input-query').value.trim();
+            const apiKey = document.getElementById('api-key-input').value.trim();
+            const tradingStyle = document.getElementById('trading-style-select').value;
+            const outputText = document.getElementById('output-text');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const saveBtn = document.getElementById('save-btn');
+            const container = document.getElementById('main-app-container');
+
+            if (!apiKey) {
+                showMessageModal("الرجاء إدخال مفتاح API الخاص بك.");
+                return;
+            }
+             if (!query && !currentImageBase64) {
+                showMessageModal("الرجاء إدخال استفسار أو تحميل صورة.");
+                return;
+            }
+
+            loadingSpinner.classList.remove('hidden');
+            outputText.innerHTML = '';
+            saveBtn.classList.add('hidden');
+            container.classList.remove('bg-green-trade', 'bg-red-trade');
+            container.classList.add('bg-default');
+
+
+            let systemPrompt = `أنت "SOSO AI"، خبير تحليل أسواق مالية متمرس ومحنك. تتحدث اللغة العربية بطلاقة وبأسلوب احترافي وواثق. مهمتك هي تقديم تحليلات دقيقة، موجزة، وقابلة للتنفيذ بناءً على البيانات المقدمة. أسلوب تداولك الحالي هو "${tradingStyle}".`;
+
+            let fullQuery = query;
+
+            switch (analysisType) {
+                case 'technical':
+                    fullQuery = `بصفتك خبير تحليل فني، قدم تحليلًا فنيًا لـ "${query}" بناءً على أسلوب "${tradingStyle}". ركز على المؤشرات الرئيسية، مستويات الدعم والمقاومة، والأنماط السعرية.`;
+                    break;
+                case 'fundamental':
+                    fullQuery = `بصفتك خبير تحليل أساسي، قدم تحليلًا أساسيًا لـ "${query}" بناءً على أسلوب "${tradingStyle}". ركز على العوامل الاقتصادية، أخبار الشركة، والتقييم المالي.`;
+                    break;
+                case 'direct':
+                    fullQuery = `قدم توصية تداول مباشرة (شراء/بيع/انتظار) لـ "${query}" مع نقاط دخول وخروج ووقف خسارة محددة، متوافقة مع أسلوب "${tradingStyle}". يجب أن تكون التوصية في بداية الرد.`;
+                    break;
+                case 'high-conviction':
+                    systemPrompt += ` أنت الآن تقدم توصية ذات قناعة عالية، وهي تتطلب أقصى درجات الدقة والتحليل العميق. استخدم كل خبرتك لتقديم توصية حاسمة.`;
+                    fullQuery = `قدم توصية تداول ذات قناعة عالية جدًا لـ "${query}". يجب أن تكون هذه أفضل فرصة تراها في السوق حاليًا، مع تبرير قوي جدًا وتحديد نقاط الدخول والخروج ووقف الخسارة بدقة. ابدأ الرد بالتوصية مباشرة.`;
+                    break;
+            }
+            if(currentImageBase64 && !query){
+                fullQuery = "حلل الصورة المقدمة من منظور مالي وتداولي. ما هي الأنماط أو المؤشرات أو المعلومات التي يمكنك استخلاصها منها؟";
+            } else if (currentImageBase64 && query){
+                 fullQuery += " استخدم الصورة المرفقة كمرجع إضافي لتحليلك.";
+            }
+
+
+            const result = await getGeminiResponse(systemPrompt, fullQuery, apiKey, currentImageBase64);
+            
+            loadingSpinner.classList.add('hidden');
+            outputText.innerHTML = formatMarkdown(result);
+            saveBtn.classList.remove('hidden');
+
+            if (result.includes("شراء")) {
+                container.classList.add('bg-green-trade');
+            } else if (result.includes("بيع")) {
+                container.classList.add('bg-red-trade');
+            }
+        };
+        
+        const formatMarkdown = (text) => {
+            if(!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')       // Italic
+                .replace(/\n/g, '<br>');                      // New lines
+        };
+        
+        const imageToBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+        });
+
+        const showMessageModal = (message) => {
+            document.getElementById('modal-text').textContent = message;
+            document.getElementById('message-modal').classList.remove('hidden');
+        };
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+            
+            const loginForm = document.getElementById('login-form');
+            loginForm.addEventListener('submit', async (e) => {
+                 e.preventDefault();
+                 const username = document.getElementById('username-input').value.trim();
+                 const password = document.getElementById('password-input').value.trim();
+
+                // Admin Login (simple check, replace with secure auth in production)
+                if (username === 'admin' && password === 'admin') {
+                    userRole = 'admin';
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-app-container').classList.remove('hidden');
+                    document.getElementById('admin-panel').classList.remove('hidden');
+                    loadLoginRequests();
+                    loadUsers();
+                    loadTradingSessions(userId || 'admin-user'); // Use placeholder if userId not ready
+                    return;
+                }
+
+                // Regular User Login
+                const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+                const q = query(usersRef, where("username", "==", username));
+                const userSnapshot = await getDocs(q);
+
+                if (userSnapshot.empty) {
+                     submitLoginRequest(username);
+                } else {
+                    const userData = userSnapshot.docs[0].data();
+                    if(userData.status === 'active'){
+                        document.getElementById('login-screen').classList.add('hidden');
+                        document.getElementById('main-app-container').classList.remove('hidden');
+                        loadTradingSessions(userId);
+                    } else if (userData.status === 'suspended'){
+                        showMessageModal('حسابك معلق. يرجى التواصل مع المسؤول.');
+                    } else {
+                         showMessageModal('حالة الحساب غير معروفة.');
+                    }
+                }
+            });
+
+            document.getElementById('analyze-btn').addEventListener('click', () => handleAnalysis('technical'));
+            document.getElementById('fundamental-btn').addEventListener('click', () => handleAnalysis('fundamental'));
+            document.getElementById('direct-trade-btn').addEventListener('click', () => handleAnalysis('direct'));
+            document.getElementById('high-conviction-trade-btn').addEventListener('click', () => {
+                document.getElementById('invincible-modal').classList.remove('hidden');
+            });
+            
+            document.getElementById('confirm-invincible-btn').addEventListener('click', () => {
+                 document.getElementById('invincible-modal').classList.add('hidden');
+                 handleAnalysis('high-conviction');
+            });
+            
+            document.getElementById('cancel-invincible-btn').addEventListener('click', () => {
+                 document.getElementById('invincible-modal').classList.add('hidden');
+            });
+
+            document.getElementById('close-modal-btn').addEventListener('click', () => {
+                document.getElementById('message-modal').classList.add('hidden');
+            });
+            
+            document.getElementById('upload-btn').addEventListener('click', () => {
+                document.getElementById('image-upload').click();
+            });
+
+            document.getElementById('image-upload').addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    currentImageBase64 = await imageToBase64(file);
+                    const preview = document.getElementById('image-preview');
+                    preview.src = URL.createObjectURL(file);
+                    document.getElementById('image-preview-container').classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('clear-image-btn').addEventListener('click', () => {
+                currentImageBase64 = null;
+                document.getElementById('image-upload').value = '';
+                document.getElementById('image-preview-container').classList.add('hidden');
+                document.getElementById('image-preview').src = '';
+            });
+
+            document.getElementById('save-btn').addEventListener('click', () => {
+                const query = document.getElementById('input-query').value.trim();
+                const analysis = document.getElementById('output-text').innerText;
+                if(query && analysis){
+                    saveSession({ query, analysis });
+                } else {
+                    showMessageModal("لا يوجد تحليل للحفظ.");
+                }
+            });
+
+            document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+                deleteUser(userToDeleteId);
+                hideConfirmDeleteModal();
+            });
+
+            document.getElementById('cancel-delete-btn').addEventListener('click', hideConfirmDeleteModal);
+        });
+    </script>
+</body>
+</html>
+
